@@ -52,7 +52,14 @@ def IndepSet (A B : Set Ω) : Prop := ℙ (A ∩ B) = ℙ A * ℙ B
 
 /-- If `A` is independent of `B`, then `B` is independent of `A`. -/
 lemma IndepSet.symm : IndepSet A B → IndepSet B A := by
-  sorry
+  intro h
+  unfold IndepSet at h
+  unfold IndepSet
+  calc
+    ℙ (B ∩ A) = ℙ (A ∩ B)  := by rw[inter_comm B A]
+            _ = ℙ A * ℙ B  := by rw[h]
+  ring
+
 
 /- Many lemmas in measure theory require sets to be measurable (`MeasurableSet A`).
 If you are presented with a goal like `⊢ MeasurableSet (A ∩ B)`, try the `measurability` tactic.
@@ -61,26 +68,73 @@ That tactic produces measurability proofs. -/
 -- Hints: `compl_eq_univ_diff`, `measure_diff`, `inter_univ`, `measure_compl`, `ENNReal.mul_sub`
 lemma IndepSet.compl_right (hA : MeasurableSet A) (hB : MeasurableSet B) :
     IndepSet A B → IndepSet A Bᶜ := by
-  sorry
+    intro h
+    unfold IndepSet at h
+    unfold IndepSet
+    nth_rewrite 1 [compl_eq_univ_diff]
+    rw[inter_diff_distrib_left]
+    rw[measure_diff]
+    · rw[inter_univ]
+      rw[h]
+      rw[measure_compl]
+      · rw[measure_univ]
+        rw[ENNReal.mul_sub]
+        · simp
+        · measurability
+      · exact hB
+      · measurability
+    · rw[inter_univ]
+      simp
+    · measurability
+    · measurability
+
 
 /- Apply `IndepSet.compl_right` to prove this generalization. It is good practice to add the iff
 version of some frequently used lemmas, this allows us to use them inside `rw` tactics. -/
 lemma IndepSet.compl_right_iff (hA : MeasurableSet A) (hB : MeasurableSet B) :
     IndepSet A Bᶜ ↔ IndepSet A B := by
-  sorry
+    constructor
+    · have temp1: MeasurableSet Bᶜ := by measurability
+      have temp2:= IndepSet.compl_right hA temp1
+      simp at temp2
+      exact temp2
+    · exact IndepSet.compl_right hA hB
+
 
 -- Use what you have proved so far
 lemma IndepSet.compl_left (hA : MeasurableSet A) (hB : MeasurableSet B) (h : IndepSet A B) :
     IndepSet Aᶜ B := by
-  sorry
+    apply IndepSet.symm
+    apply IndepSet.compl_right
+    measurability
+    measurability
+    apply IndepSet.symm
+    exact h
+
+
 
 /- Can you write and prove a lemma `IndepSet.compl_left_iff`, following the examples above?-/
 
 -- Your lemma here
+lemma IndepSet.compl_left_iff (hA: MeasurableSet A) (hB : MeasurableSet B) :
+  IndepSet Aᶜ B ↔ IndepSet A B := by
+  constructor
+  · have temp1: MeasurableSet Aᶜ := by measurability
+    have temp2:= IndepSet.compl_left temp1 hB
+    simp at temp2
+    exact temp2
+  · exact IndepSet.compl_left hA hB
+
+
 
 -- Hint: `ENNReal.mul_self_eq_self_iff`
 lemma indep_self (h : IndepSet A A) : ℙ A = 0 ∨ ℙ A = 1 := by
-  sorry
+  unfold IndepSet at h
+  rw[inter_self] at h
+  symm at h
+  rw[ENNReal.mul_self_eq_self_iff (ℙ A)] at h
+  have temp := measure_ne_top ℙ (by measurability)
+  tauto
 
 /-
 
@@ -101,11 +155,17 @@ properties of `condProb` first and then use those. -/
 -- Hint : `measure_inter_null_of_null_left`
 @[simp] -- this makes the lemma usable by `simp`
 lemma condProb_zero_left (A B : Set Ω) (hA : ℙ A = 0) : ℙ(A|B) = 0 := by
-  sorry
+  rw[condProb]
+  rw[measure_inter_null_of_null_left B hA]
+  simp
+
 
 @[simp]
 lemma condProb_zero_right (A B : Set Ω) (hB : ℙ B = 0) : ℙ(A|B) = 0 := by
-  sorry
+  rw[condProb]
+  rw[inter_comm]
+  rw[measure_inter_null_of_null_left A hB]
+  simp
 
 /- What other basic lemmas could be useful? Are there other "special" sets for which `condProb`
 takes known values? -/
@@ -119,8 +179,15 @@ There is no functional difference between those two keywords. -/
 theorem bayesTheorem (hB : ℙ B ≠ 0) : ℙ(A|B) = ℙ A * ℙ(B|A) / ℙ B := by
   by_cases h : ℙ A = 0 -- this tactic perfoms a case disjunction.
   -- Observe the goals that are created, and specifically the `h` assumption in both goals
-  · sorry
-  sorry
+  · rw[condProb_zero_left A B h]
+    rw[h]
+    simp
+  · rw[condProb, condProb]
+    rw[inter_comm]
+    rw[ENNReal.mul_div_cancel]
+    · exact h
+    · measurability
+
 
 /- Did you really need all those hypotheses?
 In Lean, division by zero follows the convention that `a/0 = 0` for all a. This means we can prove
@@ -129,8 +196,15 @@ formalization rather than the standard mathematical statement.
 If you want to know more about how division works in Lean, try to hover over `/` with your mouse. -/
 
 theorem bayesTheorem' (A B : Set Ω) : ℙ(A|B) = ℙ A * ℙ(B|A) / ℙ B := by
-  sorry
+  by_cases h : ℙ A = 0
+  · simp[h]
+  · rw[condProb, condProb]
+    rw[inter_comm]
+    rw[ENNReal.mul_div_cancel h (by measurability)]
+
 
 lemma condProb_of_indepSet (h : IndepSet B A) (hB : ℙ B ≠ 0) : ℙ(A|B) = ℙ A := by
-  sorry
-
+  rw[condProb, inter_comm, h]
+  rw[ENNReal.mul_div_right_comm]
+  rw[ENNReal.div_self hB (by measurability)]
+  simp
