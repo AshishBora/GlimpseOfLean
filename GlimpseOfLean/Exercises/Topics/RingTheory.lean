@@ -65,13 +65,15 @@ Try filling in the `sorry`s below using `intro` and `simp`.
 def RingHom.comp (g : S →+* T) (f : R →+* S) : R →+* T where
   toFun x := g (f x)
   map_one' := by
-    sorry
+    simp
   map_mul' := by
-    sorry
+    intro x y
+    simp
   map_zero' := by
-    sorry
+    simp
   map_add' := by
-    sorry
+    intro x y
+    simp
 
 /-
 A ring isomorphism between `R` and `S` is written `e : R ≃+* S`.
@@ -91,13 +93,15 @@ def RingEquiv.comp (g : S ≃+* T) (f : R ≃+* S) : R ≃+* T where
   toFun x := g (f x)
   invFun x := f.symm (g.symm x)
   left_inv := by
-    sorry
+    intro x
+    simp
   right_inv := by
-    sorry
+    intro x
+    simp
   map_add' := by
-    sorry
+    simp
   map_mul' := by
-    sorry
+    simp
 
 end homomorphisms
 
@@ -135,11 +139,12 @@ it is only an exercise).
 def Ideal.inter (I J : Ideal R) : Ideal R where
   carrier := I ∩ J
   add_mem' := by
-    sorry
+    intros
+    simp
   zero_mem' := by
-    sorry
+    simp
   smul_mem' := by
-    sorry
+    simp
 
 /-
 Finally, let's look at ideal quotients. If `I` is an ideal of the ring `R`,
@@ -188,13 +193,13 @@ variable {S} [CommRing S]
 
 def kerLift (f : R →+* S) : R ⧸ ker f →+* S :=
   Ideal.Quotient.lift (ker f) f fun x ↦ by
-    sorry
+    simp
 
 /-
 After a new definition, it is a good idea to make lemmas for its basic properties.
 -/
 theorem kerLift_mk (f : R →+* S) (x : R) : kerLift f (Ideal.Quotient.mk (ker f) x) = f x := by
-  sorry
+  aesop
 
 /-
 When we are given a quotient element `x : R ⧸ I`, it is often a useful proof step to
@@ -217,7 +222,11 @@ theorem kerLift_injective' (f : R →+* S) (x : R ⧸ ker f) (hx : kerLift f x =
   rcases Ideal.Quotient.mk_surjective x with ⟨x', hx'⟩
   rw [← hx']
   rw [← hx'] at hx
-  sorry
+  rw[Ideal.Quotient.eq_zero_iff_mem]
+  rw[kerLift_mk] at hx
+  rw[← mem_ker] at hx
+  exact hx
+
 
 /-
 Let's restate that result using `Function.Injective`.
@@ -242,9 +251,11 @@ def firstIsomorphismTheorem (f : R →+* S) (hf : Function.Surjective f) :
     invFun x := Ideal.Quotient.mk (ker f) (surjInv hf x)
     right_inv := rightInverse_surjInv hf
     map_mul' := by
-      sorry
+      intro x y
+      simp
     map_add' := by
-      sorry
+      intro x y
+      simp
     left_inv := by
       -- This is where it all comes together.
       -- Try following this proof sketch:
@@ -253,7 +264,13 @@ def firstIsomorphismTheorem (f : R →+* S) (hf : Function.Surjective f) :
       -- * Apply our theorem `kerLift_injective`.
       -- * Repeatedly rewrite `kerLift _ (Ideal.Quotient.mk _ _)` using `kerLift_mk`.
       -- * Finish by rewriting with `rightInverse_surjInv`.
-      sorry
+      intro x
+      rcases Ideal.Quotient.mk_surjective x with ⟨x', hx'⟩
+      apply kerLift_injective
+      rw[kerLift_mk]
+      rw[← hx']
+      rw[kerLift_mk]
+      exact rightInverse_surjInv hf (f x')
     }
 
 end universal_property
@@ -380,4 +397,3 @@ noncomputable def chineseIso [Fintype ι] (I : ι → Ideal R) (hI : ∀ i j, i 
 
 end Ideal
 end chinese
-
